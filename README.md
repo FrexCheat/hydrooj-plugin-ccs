@@ -1,8 +1,8 @@
 # hydrooj-plugin-ccs
 
-为 HydroOJ 中的 ACM 赛制比赛添加 CCS(Contest Control System) API 支持，可与 ICPC Tools 中的部分工具配合使用。
+为 HydroOJ 中的 ACM/ICPC 赛制比赛添加部分 CCS(Contest Control System) API 支持
 
-## 已支持的 API
+## 已支持
 
 - `/api`
 - `/api/contests`
@@ -19,18 +19,32 @@
 - `/api/contests/<contestId>/judgements`
 - `/api/contests/<contestId>/event-feed` (支持 `stream` 和 `sinceToken` 查询参数)
 
-## 未支持的操作
+## 未支持
 
+- Runs 接口
 - Webhook 接口
-- 所有 POST / PUT / PATCH 接口
+- Clarifications 接口
 - Organization 的 Logo 获取
+- 所有 POST / PUT / PATCH 接口
+
+## 未计划支持
+
+- Awards 接口
+- Persons 接口
+- Accounts 接口
+- Commentary 接口
 
 ## How to use
 
 ### 赛前
 
 - 安装本插件到你的 Hydro OJ 并重启 Hydro OJ
-- 创建好 ACM/ICPC 赛制比赛，并将时间、题目、队伍等等一系列赛前设置全部设置完善，保持在随时可以开始比赛的状态即可。（比赛过程中如果需要对题目、队伍、时间做出操作增删改操作，请在操作后重置比赛 CCS 数据并重新初始化，否则不推荐赛时对这些数据进行任何改动）
+- 创建好 ACM/ICPC 赛制比赛，并将时间、题目、队伍等等一系列赛前设置全部设置完善，保持在随时可以开始比赛的状态即可。
+- 比赛过程中如果需要对题目、队伍、时间做出操作增删改操作，请在操作后重置比赛 CCS 数据并重新初始化，否则不推荐赛时对这些数据进行任何改动。
+
+> [!CAUTION]
+> 如果比赛中途重新初始化比赛，请停止 CDS 并清除 CDS 缓存后重新启动 CDS 服务器，否则 CDS 会出现数据丢失的情况。
+
 - 进入 “系统设置” 修改 CCS 账户的默认密码：
 
 ![](./.img/change-default-passwd.png)
