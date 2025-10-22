@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { ContestModel, parseTimeMS, ProblemConfig, RecordDoc, STATUS_SHORT_TEXTS, Tdoc, User } from 'hydrooj';
 import { CCSContest, CCSJudgement, CCSOrganization, CCSProblem, CCState, CCSTeam, CCSubmission } from './types';
 import { TimeUtils } from './utils';
@@ -55,7 +56,7 @@ export class CCSAdapter {
             label: `team-${udoc._id}`,
             name: udoc.displayName || udoc.uname,
             display_name: (unrank ? '⭐' : '') + (udoc.displayName || udoc.uname),
-            organization_id: btoa(udoc.school || udoc.uname).replace(/=/g, ''),
+            organization_id: crypto.createHash('md5').update(udoc.school || udoc.uname).digest('hex'),
             group_ids: [unrank ? 'observers' : 'participants'],
         };
     }

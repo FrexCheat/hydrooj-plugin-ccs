@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+import crypto from 'crypto';
 import { ContestModel, Context, ForbiddenError, ObjectId, ProblemModel, RecordDoc, RecordModel, STATUS, STATUS_SHORT_TEXTS, STATUS_TEXTS, Tdoc, UserModel } from 'hydrooj';
 import { CCSAdapter } from './adapter';
 import { CCSEventDoc, EventType } from './types';
@@ -146,7 +147,7 @@ export class EventFeedManager {
         const orgMap: Record<string, { id: string, name: string, formal_name: string }> = {};
         for (const i of tudocs) {
             const udoc = udict[i.uid];
-            const orgId = btoa(udoc.school || udoc.uname).replace(/=/g, '');
+            const orgId = crypto.createHash('md5').update(udoc.school || udoc.uname).digest('hex');
             orgMap[orgId] ||= CCSAdapter.toOrganization(orgId, udoc);
         }
         await Promise.all(Object.values(orgMap).map((org) => this.addEvent(tdoc._id, 'organizations', org)));
