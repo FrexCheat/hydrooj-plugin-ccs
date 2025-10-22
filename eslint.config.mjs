@@ -31,16 +31,6 @@ const config = react({
         'import/parsers': {
             '@typescript-eslint/parser': ['.ts', '.js', '.jsx', '.tsx'],
         },
-
-        'import/resolver': {
-            webpack: {
-                config: {
-                    resolve: {
-                        extensions: ['.js', '.jsx', '.ts', '.tsx'],
-                    },
-                },
-            },
-        },
     },
 
     rules: {
@@ -93,15 +83,6 @@ const config = react({
     settings: {
         'react-x': {
             version: '18.3.1',
-        },
-        'import/resolver': {
-            webpack: {
-                config: {
-                    resolve: {
-                        extensions: ['.js', '.jsx', '.ts', '.tsx'],
-                    },
-                },
-            },
         },
     },
 
