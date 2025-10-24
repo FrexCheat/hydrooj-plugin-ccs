@@ -1,13 +1,13 @@
 {
   "name": "hydrooj-plugin-ccs",
+  "author": "FrexCheat <frexdeveloper@gmail.com>",
+  "license": "AGPL-3.0-only",
   "version": "1.0.0",
-  "author": "FrexCheat <frexcheat@163.com>",
   "main": "src/index.ts",
   "scripts": {
     "lint": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --fix",
     "lint:ci": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --max-warnings=0"
   },
-  "packageManager": "yarn@4.10.3",
   "devDependencies": {
     "@hydrooj/eslint-config": "^3.0.2",
     "@vue/compiler-sfc": "^3.5.22",
@@ -17,5 +17,6 @@
   "dependencies": {
     "@hydrooj/ui-default": "^4.58.0-beta.10",
     "hydrooj": "^5.0.0-beta.11"
-  }
+  },
+  "packageManager": "yarn@4.10.3"
 }
