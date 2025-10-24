@@ -1,10 +1,5 @@
-import { Context, ForbiddenError, PERM, SettingModel } from 'hydrooj';
-import { CCSInfoHandler, ContestsHandler } from './handler/base';
-import { ContestAccessHandler, ContestHandler, ContestStateHandler } from './handler/contests';
-import { LanguagesHandler, ProblemsHandler } from './handler/data';
-import { EventFeedHandler } from './handler/event-feed';
-import { GroupsHandler, OrganizationsHandler, TeamsHandler } from './handler/participants';
-import { JudgementsHandler, JudgementTypesHandler, SubmissionsHandler } from './handler/submissions';
+import { Context, SettingModel } from 'hydrooj';
+import * as handler from './handler';
 import { EventFeedManager } from './lib/event-mgr';
 import { CCSEventContest, CCSEventDoc } from './lib/types';
 
@@ -17,34 +12,31 @@ declare module 'hydrooj' {
 
 export default async function apply(ctx: Context) {
     const eventManager = new EventFeedManager(ctx);
-    ctx.Route('CCSApiInfo', '/ccs/api', CCSInfoHandler);
-    ctx.Route('CCSContests', '/ccs/api/contests', ContestsHandler);
-    ctx.Route('CCSContest', '/ccs/api/contests/:contestId', ContestHandler);
-    ctx.Route('CCSContestState', '/ccs/api/contests/:contestId/state', ContestStateHandler);
-    ctx.Route('CCSContestAccess', '/ccs/api/contests/:contestId/access', ContestAccessHandler);
-    ctx.Route('CCSContestLanguages', '/ccs/api/contests/:contestId/languages', LanguagesHandler);
-    ctx.Route('CCSContestProblems', '/ccs/api/contests/:contestId/problems', ProblemsHandler);
-    ctx.Route('CCSContestTeams', '/ccs/api/contests/:contestId/teams', TeamsHandler);
-    ctx.Route('CCSContestOrganizations', '/ccs/api/contests/:contestId/organizations', OrganizationsHandler);
-    ctx.Route('CCSContestGroups', '/ccs/api/contests/:contestId/groups', GroupsHandler);
-    ctx.Route('CCSContestJudgementTypes', '/ccs/api/contests/:contestId/judgement-types', JudgementTypesHandler);
-    ctx.Route('CCSContestSubmissions', '/ccs/api/contests/:contestId/submissions', SubmissionsHandler);
-    ctx.Route('CCSContestJudgements', '/ccs/api/contests/:contestId/judgements', JudgementsHandler);
-    ctx.Route('CCSContestEventFeed', '/ccs/api/contests/:contestId/event-feed', EventFeedHandler);
-    ctx.on('record/change', async (rdoc) => {
-        await eventManager.handleSubmission(rdoc);
-        // console.log('<<<<==============================================');
-        // console.log('Record changed:');
-        // console.log(rdoc);
-        // console.log('==============================================>>>>');
-    });
-    ctx.on('record/judge', async (rdoc) => {
-        await eventManager.handleJudgement(rdoc);
-        // console.log('<<<<==============================================');
-        // console.log('Record judged:');
-        // console.log(rdoc);
-        // console.log('==============================================>>>>');
-    });
+    ctx.Route('ccs_operation', '/ccs/api/contests/:contestId/operation/:operation', handler.CCSOperationHandler);
+    ctx.Route('ccs_api_info', '/ccs/api', handler.ApiInfoHandler);
+    ctx.Route('ccs_contests', '/ccs/api/contests', handler.ContestsHandler);
+    ctx.Route('ccs_contest', '/ccs/api/contests/:contestId', handler.ContestsHandler);
+    ctx.Route('ccs_contest_state', '/ccs/api/contests/:contestId/state', handler.ContestStateHandler);
+    ctx.Route('ccs_contest_languages', '/ccs/api/contests/:contestId/languages', handler.LanguagesHandler);
+    ctx.Route('ccs_contest_language', '/ccs/api/contests/:contestId/languages/:id', handler.LanguagesHandler);
+    ctx.Route('ccs_contest_problems', '/ccs/api/contests/:contestId/problems', handler.ProblemsHandler);
+    ctx.Route('ccs_contest_problem', '/ccs/api/contests/:contestId/problems/:id', handler.ProblemsHandler);
+    ctx.Route('ccs_contest_teams', '/ccs/api/contests/:contestId/teams', handler.TeamsHandler);
+    ctx.Route('ccs_contest_team', '/ccs/api/contests/:contestId/teams/:id', handler.TeamsHandler);
+    ctx.Route('ccs_contest_organizations', '/ccs/api/contests/:contestId/organizations', handler.OrganizationsHandler);
+    ctx.Route('ccs_contest_organization', '/ccs/api/contests/:contestId/organizations/:id', handler.OrganizationsHandler);
+    ctx.Route('ccs_contest_groups', '/ccs/api/contests/:contestId/groups', handler.GroupsHandler);
+    ctx.Route('ccs_contest_group', '/ccs/api/contests/:contestId/groups/:id', handler.GroupsHandler);
+    ctx.Route('ccs_contest_judgement_types', '/ccs/api/contests/:contestId/judgement-types', handler.JudgementTypesHandler);
+    ctx.Route('ccs_contest_judgement_type', '/ccs/api/contests/:contestId/judgement-types/:id', handler.JudgementTypesHandler);
+    ctx.Route('ccs_contest_submissions', '/ccs/api/contests/:contestId/submissions', handler.SubmissionsHandler);
+    ctx.Route('ccs_contest_submission', '/ccs/api/contests/:contestId/submissions/:id', handler.SubmissionsHandler);
+    ctx.Route('ccs_contest_judgements', '/ccs/api/contests/:contestId/judgements', handler.JudgementsHandler);
+    ctx.Route('ccs_contest_judgement', '/ccs/api/contests/:contestId/judgements/:id', handler.JudgementsHandler);
+    ctx.Route('ccs_contest_runs', '/ccs/api/contests/:contestId/runs', handler.RunsHandler);
+    ctx.Route('ccs_contest_run', '/ccs/api/contests/:contestId/runs/:id', handler.RunsHandler);
+    ctx.Route('ccs_contest_event_feed', '/ccs/api/contests/:contestId/event-feed', handler.EventFeedHandler);
+    ctx.on('record/change', async (rdoc, $set, $push) => { await eventManager.handleRecordChange(rdoc, $set, $push); });
     ctx.inject(['setting'], (c) => {
         c.setting.SystemSetting(
             SettingModel.Setting('setting_ccs_account', 'ccs.username', 'ccs_hydro', 'text', 'ccs.username', 'CCS UserName'),
@@ -65,46 +57,5 @@ export default async function apply(ctx: Context) {
         setting_ccs_account: 'CCS Account Settings',
         'CCS UserName': 'CCS UserName',
         'CCS Password': 'CCS Password',
-    });
-    ctx.inject(['scoreboard'], ({ scoreboard }) => {
-        scoreboard.addView('ccs-initialize', '(CCS) Init Contest', { tdoc: 'tdoc' }, {
-            async display({ tdoc }) {
-                this.checkPerm(PERM.PERM_CREATE_CONTEST);
-                if (await eventManager.isContestInitialized(tdoc)) {
-                    throw new ForbiddenError('CCS Contest already initialized.');
-                }
-                await eventManager.initializeContest(tdoc);
-                this.response.redirect = this.url('contest_detail', { tid: tdoc._id });
-            },
-            supportedRules: ['acm'],
-        });
-        scoreboard.addView('ccs-reset', '(CCS) Reset Contest', { tdoc: 'tdoc' }, {
-            async display({ tdoc }) {
-                this.checkPerm(PERM.PERM_CREATE_CONTEST);
-                if (!(await eventManager.isContestInitialized(tdoc))) {
-                    throw new ForbiddenError('CCS Contest not initialized.');
-                }
-                await eventManager.resetContest(tdoc);
-                this.response.redirect = this.url('contest_detail', { tid: tdoc._id });
-            },
-            supportedRules: ['acm'],
-        });
-        scoreboard.addView('ccs-finalize', '(CCS) Finalize Contest', { tdoc: 'tdoc' }, {
-            async display({ tdoc }) {
-                this.checkPerm(PERM.PERM_CREATE_CONTEST);
-                if (!(await eventManager.isContestInitialized(tdoc))) {
-                    throw new ForbiddenError('CCS Contest not initialized.');
-                }
-                if (!(await eventManager.isContestEnded(tdoc))) {
-                    throw new ForbiddenError('CCS Contest not ended.');
-                }
-                if (await eventManager.isContestFinalized(tdoc)) {
-                    throw new ForbiddenError('CCS Contest already finalized.');
-                }
-                await eventManager.setContestFinalized(tdoc);
-                this.response.redirect = this.url('contest_detail', { tid: tdoc._id });
-            },
-            supportedRules: ['acm'],
-        });
     });
 }

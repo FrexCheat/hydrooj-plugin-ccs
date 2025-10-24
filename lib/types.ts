@@ -10,7 +10,8 @@ export type EventType =
     | 'teams'
     | 'state'
     | 'submissions'
-    | 'judgements';
+    | 'judgements'
+    | 'runs';
 
 export interface CCSEventDoc {
     _id: ObjectId;
@@ -22,9 +23,6 @@ export interface CCSEventDoc {
 export interface CCSEventContest {
     domainId: string;
     tid: ObjectId;
-    ended: boolean;
-    thawed: boolean;
-    finalized: boolean;
 }
 
 export interface CCSContest {
@@ -59,7 +57,7 @@ export interface CCSProblem {
     ordinal: number;
     color: string;
     rgb: string;
-    time_limit: string;
+    time_limit: number;
     test_data_count: number;
 }
 
@@ -107,4 +105,14 @@ export interface CCSJudgement {
     start_contest_time: string;
     end_time: string;
     end_contest_time: string;
+}
+
+export interface CCSRun {
+    id: string;
+    judgement_id: string;
+    ordinal: number;
+    judgement_type_id: string;
+    time: string;
+    contest_time: string;
+    run_time: number;
 }

@@ -1,21 +1,12 @@
-import { ContestModel, ForbiddenError, Handler, NotFoundError, ObjectId, param, ProblemModel, RecordModel, Types, UserModel } from 'hydrooj';
+import { ContestModel, ForbiddenError, Handler, NotFoundError, ObjectId, param, Types } from 'hydrooj';
 import { CCSAdapter } from '../lib/adapter';
 import { EventFeedManager } from '../lib/event-mgr';
 
-export class CCSContestBaseHandler extends Handler {
-    async getContestData(domainId: string, contestId: ObjectId) {
-        const tdoc = await ContestModel.get(domainId, contestId);
-        const tudocs = await ContestModel.getMultiStatus(tdoc.domainId, { docId: tdoc._id }).toArray();
-        const [pdict, udict] = await Promise.all([
-            ProblemModel.getList(tdoc.domainId, tdoc.pids, true, false, ProblemModel.PROJECTION_LIST, true),
-            UserModel.getList(tdoc.domainId, tudocs.map((i) => i.uid)),
-        ]);
-        const records = await RecordModel.getMulti(tdoc.domainId, { contest: tdoc._id }).toArray();
+export class BaseHandler extends Handler {
+    public eventManager = new EventFeedManager(this.ctx);
+    public adapter = new CCSAdapter();
 
-        return { tdoc, pdict, tudocs, udict, records };
-    }
-
-    checkAuth() {
+    public checkAuth() {
         const authHeader = this.request.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Basic ')) return false;
         const base64Credentials = authHeader.substring(6);
@@ -27,19 +18,43 @@ export class CCSContestBaseHandler extends Handler {
         return true;
     }
 
-    @param('contestId', Types.String)
+    @param('contestId', Types.String, true)
     async prepare(domainId: string, contestId: string) {
-        const eventManager = new EventFeedManager(this.ctx);
-        const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
-        if (!tdoc) throw new NotFoundError('Contest not found.');
         if (!this.checkAuth()) throw new ForbiddenError('Unauthorized');
-        if (!(await eventManager.isContestInitialized(tdoc))) {
-            throw new ForbiddenError('Contest not initialized by ccs.');
+        if (contestId) {
+            const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
+            if (!tdoc) throw new NotFoundError('Contest not found');
+            if (!(await this.eventManager.isContestInitialized(tdoc))) {
+                throw new ForbiddenError('Contest not be initialized');
+            }
         }
     }
 }
 
-export class CCSInfoHandler extends Handler {
+export class CCSOperationHandler extends Handler {
+    public eventManager = new EventFeedManager(this.ctx);
+    async prepare() {
+        this.checkPriv(-1);
+    }
+
+    @param('contestId', Types.String)
+    @param('operation', Types.String)
+    async post(domainId: string, contestId: string, operation: string) {
+        const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
+        if (!tdoc) throw new NotFoundError('Contest not found');
+        if (operation === 'init') {
+            await this.eventManager.initializeContest(tdoc);
+            this.response.status = 200;
+            this.response.body = { message: '比赛数据初始化成功！' };
+        } else if (operation === 'reset') {
+            await this.eventManager.resetContest(tdoc);
+            this.response.status = 200;
+            this.response.body = { message: '比赛数据重置成功！' };
+        }
+    }
+}
+
+export class ApiInfoHandler extends BaseHandler {
     async get() {
         this.response.body = {
             version: '2023-06',
@@ -50,18 +65,5 @@ export class CCSInfoHandler extends Handler {
                 version: '1.0.0',
             },
         };
-        this.response.type = 'application/json';
-    }
-}
-
-export class ContestsHandler extends Handler {
-    async get({ domainId }: { domainId: string }) {
-        const ccsContests = await this.ctx.db.collection('ccs.contest').find({ domainId }, { projection: { tid: 1 } }).toArray();
-        const tdocs = await ContestModel.getMulti(domainId, { _id: { $in: ccsContests.map((c) => c.tid) } }).toArray();
-        const contests = tdocs.map((tdoc) => ({
-            ...CCSAdapter.toContest(tdoc),
-        }));
-        this.response.body = contests;
-        this.response.type = 'application/json';
     }
 }

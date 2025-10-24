@@ -1,10 +1,10 @@
 import crypto from 'crypto';
-import { ContestModel, parseTimeMS, ProblemConfig, RecordDoc, STATUS_SHORT_TEXTS, Tdoc, User } from 'hydrooj';
-import { CCSContest, CCSJudgement, CCSOrganization, CCSProblem, CCState, CCSTeam, CCSubmission } from './types';
+import { ContestModel, FileInfo, ProblemConfig, ProblemDict, ProblemModel, RecordDoc, STATUS_SHORT_TEXTS, Tdoc, TestCase, User } from 'hydrooj';
+import { CCSContest, CCSJudgement, CCSOrganization, CCSProblem, CCSRun, CCState, CCSTeam, CCSubmission } from './types';
 import { TimeUtils } from './utils';
 
 export class CCSAdapter {
-    static toContest(tdoc: Tdoc): CCSContest {
+    public toContest(tdoc: Tdoc): CCSContest {
         return {
             id: tdoc.docId.toHexString(),
             name: tdoc.title,
@@ -19,25 +19,36 @@ export class CCSAdapter {
         };
     }
 
-    static toState(tdoc: Tdoc, finalized: boolean = false): CCState {
+    public toState(tdoc: Tdoc): CCState {
         const nowTime = new Date();
-        const started = TimeUtils.formatTime(tdoc.beginAt);
+        const started = (ContestModel.isOngoing(tdoc)) ? TimeUtils.formatTime(tdoc.beginAt) : null;
         const ended = ContestModel.isDone(tdoc) ? TimeUtils.formatTime(tdoc.endAt) : null;
-        const frozen = tdoc.lockAt ? TimeUtils.formatTime(tdoc.lockAt) : null;
+        const frozen = tdoc.lockAt
+            ? (ContestModel.isDone(tdoc) ? TimeUtils.formatTime(tdoc.lockAt) : (tdoc.unlocked ? null : TimeUtils.formatTime(tdoc.lockAt)))
+            : null;
         const thawed = (ContestModel.isDone(tdoc) && tdoc.unlocked) ? TimeUtils.formatTime(nowTime) : null;
-        const finalizedTime = finalized ? TimeUtils.formatTime(nowTime) : null;
-        const endOfUpdates = finalized ? TimeUtils.formatTime(new Date(nowTime.getTime() + 1000 * 60 * 5)) : null;
         return {
             started,
             frozen,
             ended,
             thawed,
-            finalized: finalizedTime,
-            end_of_updates: endOfUpdates,
+            finalized: null,
+            end_of_updates: null,
         };
     }
 
-    static toProblem(tdoc: Tdoc, pdict: any, index: number, pid: number): CCSProblem {
+    public async toProblem(tdoc: Tdoc, pdict: ProblemDict, index: number, pid: number): Promise<CCSProblem> {
+        const getTestCasesCount = (data: FileInfo[]): number => {
+            let count = 0;
+            for (const file of data) {
+                if (file.name.split('.').pop() === 'out') {
+                    count += 1;
+                }
+            }
+            return count;
+        };
+        const referenceInfo: { domainId: string, pid: number } = pdict[pid].reference;
+        const referenceData = referenceInfo ? await ProblemModel.get(referenceInfo.domainId, referenceInfo.pid) : null;
         return {
             id: `${pid}`,
             label: String.fromCharCode(65 + index),
@@ -45,12 +56,12 @@ export class CCSAdapter {
             ordinal: index,
             color: (typeof (tdoc.balloon?.[index]) === 'object' ? tdoc.balloon[index].name : tdoc.balloon?.[index]) || 'white',
             rgb: (typeof (tdoc.balloon?.[index]) === 'object' ? tdoc.balloon[index].color : null) || '#ffffff',
-            time_limit: (parseTimeMS((pdict[pid].config as ProblemConfig).timeMax) / 1000).toFixed(1),
-            test_data_count: 20,
+            time_limit: ((pdict[pid].config as ProblemConfig).timeMax) / 1000,
+            test_data_count: (referenceData ? getTestCasesCount(referenceData.data) : getTestCasesCount(pdict[pid].data)),
         };
     }
 
-    static toTeam(udoc: User, unrank: boolean): CCSTeam {
+    public toTeam(udoc: User, unrank: boolean): CCSTeam {
         return {
             id: `team-${udoc._id}`,
             label: `team-${udoc._id}`,
@@ -61,7 +72,7 @@ export class CCSAdapter {
         };
     }
 
-    static toOrganization(orgId: string, udoc: User): CCSOrganization {
+    public toOrganization(orgId: string, udoc: User): CCSOrganization {
         return {
             id: orgId,
             name: udoc.school || udoc.uname,
@@ -69,7 +80,7 @@ export class CCSAdapter {
         };
     }
 
-    static toSubmission(tdoc: Tdoc, rdoc: RecordDoc): CCSubmission {
+    public toSubmission(tdoc: Tdoc, rdoc: RecordDoc): CCSubmission {
         const submitTime = TimeUtils.formatTime(rdoc._id.getTimestamp());
         const contestTime = TimeUtils.getContestTime(tdoc, rdoc._id.getTimestamp());
         return {
@@ -82,20 +93,27 @@ export class CCSAdapter {
         };
     }
 
-    static toJudgement(tdoc: Tdoc, rdoc: RecordDoc): CCSJudgement {
-        const spendTimeMs = rdoc.time;
-        const judgedDate = rdoc.judgeAt;
-        const judgedTime = TimeUtils.formatTime(judgedDate);
-        const startDate = new Date(judgedDate.getTime() - spendTimeMs);
-        const startTime = TimeUtils.formatTime(startDate);
+    public toJudgement(tdoc: Tdoc, rdoc: RecordDoc): CCSJudgement {
         return {
             id: `j-${rdoc._id.toHexString()}`,
             submission_id: rdoc._id.toHexString(),
-            judgement_type_id: STATUS_SHORT_TEXTS[rdoc.status as keyof typeof STATUS_SHORT_TEXTS],
-            start_time: startTime,
-            start_contest_time: TimeUtils.getContestTime(tdoc, startDate),
-            end_time: judgedTime,
-            end_contest_time: TimeUtils.getContestTime(tdoc, judgedDate),
+            judgement_type_id: rdoc.judgeAt ? STATUS_SHORT_TEXTS[rdoc.status] : null,
+            start_time: TimeUtils.formatTime(rdoc._id.getTimestamp()),
+            start_contest_time: TimeUtils.getContestTime(tdoc, rdoc._id.getTimestamp()),
+            end_time: rdoc.judgeAt ? TimeUtils.formatTime(rdoc.judgeAt) : null,
+            end_contest_time: rdoc.judgeAt ? TimeUtils.getContestTime(tdoc, rdoc.judgeAt) : null,
+        };
+    }
+
+    public toRun(tdoc: Tdoc, rdoc: RecordDoc, testCaseDoc: TestCase): CCSRun {
+        return {
+            id: `r-${rdoc._id.toHexString()}-${testCaseDoc.id}`,
+            judgement_id: `j-${rdoc._id.toHexString()}`,
+            ordinal: testCaseDoc.id,
+            judgement_type_id: STATUS_SHORT_TEXTS[testCaseDoc.status],
+            time: TimeUtils.formatTime(new Date(rdoc._id.getTimestamp().getTime() + testCaseDoc.time)),
+            contest_time: TimeUtils.getContestTime(tdoc, new Date(rdoc._id.getTimestamp().getTime() + testCaseDoc.time)),
+            run_time: testCaseDoc.time / 1000,
         };
     }
 }

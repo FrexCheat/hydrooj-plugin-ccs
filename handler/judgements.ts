@@ -1,26 +1,26 @@
 import { ContestModel, ObjectId, param, RecordModel, Types } from 'hydrooj';
 import { BaseHandler } from './base';
 
-export class SubmissionsHandler extends BaseHandler {
+export class JudgementsHandler extends BaseHandler {
     @param('contestId', Types.String)
     @param('id', Types.String, true)
     async get(domainId: string, contestId: string, id: string) {
         const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
         const records = await RecordModel.getMulti(tdoc.domainId, { contest: tdoc._id }).toArray();
         if (id) {
-            const rdoc = records.find((r) => r._id.toString() === id);
-            if (!rdoc) {
+            const rdoc = records.find((r) => r._id.toString() === id.split('-').pop());
+            if (!rdoc || rdoc.judgeAt === null) {
                 this.response.status = 404;
-                this.response.body = { message: 'Submission not found' };
+                this.response.body = { message: 'Judgement not found' };
                 return;
             }
-            const submission = this.adapter.toSubmission(tdoc, rdoc);
-            this.response.body = submission;
+            const judgement = this.adapter.toJudgement(tdoc, rdoc);
+            this.response.body = judgement;
         } else {
-            const submissions = records.map((rdoc) => {
-                return this.adapter.toSubmission(tdoc, rdoc);
+            const judgements = records.filter((rdoc) => rdoc.judgeAt !== null).map((rdoc) => {
+                return this.adapter.toJudgement(tdoc, rdoc);
             });
-            this.response.body = submissions;
+            this.response.body = judgements;
         }
     }
 }

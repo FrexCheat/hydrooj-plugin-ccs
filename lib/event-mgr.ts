@@ -1,124 +1,94 @@
 /* eslint-disable max-len */
 import crypto from 'crypto';
+import { PassThrough } from 'stream';
+import { Collection } from 'mongodb';
 import { ContestModel, Context, ForbiddenError, ObjectId, ProblemModel, RecordDoc, RecordModel, STATUS, STATUS_SHORT_TEXTS, STATUS_TEXTS, Tdoc, UserModel } from 'hydrooj';
 import { CCSAdapter } from './adapter';
-import { CCSEventDoc, EventType } from './types';
+import { CCSEventContest, CCSEventDoc, CCState, EventType } from './types';
 /* eslint-enable max-len */
 
 export class EventFeedManager {
-    private ctx: Context;
+    private adapter = new CCSAdapter();
+    public eventCollection: Collection<CCSEventDoc>;
+    public contestCollection: Collection<CCSEventContest>;
 
     constructor(ctx: Context) {
-        this.ctx = ctx;
-    }
-
-    async initializeContest(tdoc: Tdoc) {
-        const coll = this.ctx.db.collection('ccs.contest');
-        if (await this.isContestInitialized(tdoc)) throw new ForbiddenError('CCS Contest already initialized.');
-        const hasProblems = tdoc.pids && tdoc.pids.length > 0;
-        if (!hasProblems) throw new ForbiddenError('Contest has no problems.');
-        const hasParticipants = await ContestModel.countStatus(tdoc.domainId, { docId: tdoc._id }) > 0;
-        if (!hasParticipants) throw new ForbiddenError('Contest has no participants.');
-        await coll.insertOne({
-            _id: new ObjectId(),
-            domainId: tdoc.domainId,
-            tid: tdoc._id,
-            ended: ContestModel.isDone(tdoc),
-            thawed: ContestModel.isDone(tdoc) ? tdoc.unlocked : false,
-            finalized: false,
-        });
-        await this.initializeEvent(tdoc);
+        this.eventCollection = ctx.db.collection('ccs.event');
+        this.contestCollection = ctx.db.collection('ccs.contest');
     }
 
     async resetContest(tdoc: Tdoc) {
-        const coll = this.ctx.db.collection('ccs.contest');
-        await coll.deleteOne({ domainId: tdoc.domainId, tid: tdoc._id });
-        const collEvent = this.ctx.db.collection('ccs.event');
-        await collEvent.deleteMany({ tid: tdoc._id });
+        await this.contestCollection.deleteOne({ domainId: tdoc.domainId, tid: tdoc._id });
+        await this.eventCollection.deleteMany({ tid: tdoc._id });
     }
 
     async isContestInitialized(tdoc: Tdoc) {
-        const coll = this.ctx.db.collection('ccs.contest');
-        const existed = await coll.findOne({ domainId: tdoc.domainId, tid: tdoc._id });
+        const existed = await this.contestCollection.findOne({ domainId: tdoc.domainId, tid: tdoc._id });
         if (!existed) return false;
         return true;
     }
 
-    async isContestEnded(tdoc: Tdoc) {
-        const coll = this.ctx.db.collection('ccs.contest');
-        const existed = await coll.findOne({ domainId: tdoc.domainId, tid: tdoc._id });
-        return existed.ended;
-    }
-
-    async setContestEnded(tdoc: Tdoc) {
-        const coll = this.ctx.db.collection('ccs.contest');
-        await coll.updateOne({ domainId: tdoc.domainId, tid: tdoc._id }, { $set: { ended: true } });
-    }
-
-    async isContestThawed(tdoc: Tdoc) {
-        const coll = this.ctx.db.collection('ccs.contest');
-        const existed = await coll.findOne({ domainId: tdoc.domainId, tid: tdoc._id });
-        return existed.thawed;
-    }
-
-    async setContestThawed(tdoc: Tdoc) {
-        const coll = this.ctx.db.collection('ccs.contest');
-        await coll.updateOne({ domainId: tdoc.domainId, tid: tdoc._id }, { $set: { thawed: true } });
-    }
-
-    async isContestFinalized(tdoc: Tdoc) {
-        const coll = this.ctx.db.collection('ccs.contest');
-        const existed = await coll.findOne({ domainId: tdoc.domainId, tid: tdoc._id });
-        return existed.finalized;
-    }
-
-    async setContestFinalized(tdoc: Tdoc) {
-        const coll = this.ctx.db.collection('ccs.contest');
-        await coll.updateOne({ domainId: tdoc.domainId, tid: tdoc._id }, { $set: { finalized: true } });
-        await this.addEvent(tdoc._id, 'state', CCSAdapter.toState(tdoc, true));
-    }
-
     async addEvent(tid: ObjectId, type: EventType, data: any) {
-        const coll = this.ctx.db.collection('ccs.event');
         const edoc: CCSEventDoc = { _id: new ObjectId(), tid, type, data };
-        await coll.insertOne(edoc);
+        await this.eventCollection.insertOne(edoc);
         return edoc;
     }
 
-    async getEvents(tid: ObjectId, sinceId: ObjectId | null = null): Promise<CCSEventDoc[]> {
-        const collEvent = this.ctx.db.collection('ccs.event');
-        const query: any = sinceId ? { _id: { $gt: sinceId }, tid } : { tid };
-        return collEvent.find(query).sort({ _id: 1 }).toArray();
+    async getEvents(tid: ObjectId, sinceId: ObjectId | null = null, type: EventType | null = null) {
+        const query = { ...(sinceId ? { _id: { $gt: sinceId } } : {}), tid, ...(type ? { type } : {}) };
+        return this.eventCollection.find(query).toArray();
     }
 
-    async handleSubmission(rdoc: RecordDoc) {
+    public writeEventToStream(passthrough: PassThrough, event: CCSEventDoc) {
+        const result = {
+            type: event.type as EventType,
+            id: event.data.id ? `${event.data.id}` : null,
+            data: event.data,
+            token: `${event._id.toHexString()}`,
+        };
+        passthrough.write(`${JSON.stringify(result)}\n`);
+    }
+
+    async addMissingStateEvent(tdoc: Tdoc) {
+        const stateEvents = await this.getEvents(tdoc._id, null, 'state');
+        const lastStateEvent = stateEvents.reverse()[0];
+        const stateData: CCState | null = lastStateEvent ? lastStateEvent.data as CCState : null;
+        if (!stateData) {
+            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
+        } else if (ContestModel.isOngoing(tdoc) && !stateData.started) {
+            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
+        } else if (ContestModel.isOngoing(tdoc) && !tdoc.unlocked && !stateData.frozen) {
+            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
+        } else if (ContestModel.isDone(tdoc) && !stateData.frozen) {
+            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
+        } else if (ContestModel.isDone(tdoc) && !stateData.ended) {
+            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
+        } else if (ContestModel.isDone(tdoc) && tdoc.unlocked && !stateData.thawed) {
+            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
+        }
+    }
+
+    async handleRecordChange(rdoc: RecordDoc, $set: any, $push: any) {
         if (!rdoc.contest || rdoc.contest.toHexString() === '000000000000000000000000') return;
         const tdoc = await ContestModel.get(rdoc.domainId, rdoc.contest);
         if (!tdoc) return;
-        if (!(await this.isContestInitialized(tdoc)) || (await this.isContestFinalized(tdoc))) return;
-        const collEvent = this.ctx.db.collection('ccs.event');
-        const submissionId = rdoc._id.toHexString();
-        const existed = await collEvent.findOne({ tid: tdoc._id, type: 'submissions', 'data.id': submissionId });
-        if (existed) return;
-        await this.addEvent(tdoc._id, 'submissions', CCSAdapter.toSubmission(tdoc, rdoc));
-    }
-
-    async handleJudgement(rdoc: RecordDoc) {
-        if (!rdoc.contest || rdoc.contest.toHexString() === '000000000000000000000000') return;
-        const tdoc = await ContestModel.get(rdoc.domainId, rdoc.contest);
-        if (!tdoc) return;
-        if (!(await this.isContestInitialized(tdoc)) || (await this.isContestFinalized(tdoc))) return;
-        if (rdoc.judgeAt !== null) {
-            await this.addEvent(tdoc._id, 'judgements', CCSAdapter.toJudgement(tdoc, rdoc));
+        if (!(await this.isContestInitialized(tdoc))) return;
+        if (rdoc.status === 0) {
+            await this.addEvent(tdoc._id, 'submissions', this.adapter.toSubmission(tdoc, rdoc));
+            await this.addEvent(tdoc._id, 'judgements', this.adapter.toJudgement(tdoc, rdoc));
+        } else if (rdoc.judgeAt) {
+            await this.addEvent(tdoc._id, 'judgements', this.adapter.toJudgement(tdoc, rdoc));
+        } else if ($push.testCases) {
+            await this.addEvent(tdoc._id, 'runs', this.adapter.toRun(tdoc, rdoc, $push.testCases));
         }
     }
 
     async initializeEvent(tdoc: Tdoc) {
         // contest
-        await this.addEvent(tdoc._id, 'contest', CCSAdapter.toContest(tdoc));
+        await this.addEvent(tdoc._id, 'contest', this.adapter.toContest(tdoc));
 
         // state
-        await this.addEvent(tdoc._id, 'state', CCSAdapter.toState(tdoc));
+        await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
 
         // languages
         await this.addEvent(tdoc._id, 'languages', { id: 'c', name: 'C' });
@@ -132,10 +102,14 @@ export class EventFeedManager {
         await this.addEvent(tdoc._id, 'languages', { id: 'rust', name: 'Rust' });
         await this.addEvent(tdoc._id, 'languages', { id: 'go', name: 'Go' });
 
+        /* eslint-disable no-await-in-loop */
         // problems
-        const pdict = await ProblemModel.getList(tdoc.domainId, tdoc.pids, true, false, ProblemModel.PROJECTION_LIST, true);
-        const problems = tdoc.pids.map((pid, index) => (CCSAdapter.toProblem(tdoc, pdict, index, pid)));
-        await Promise.all(problems.map((p) => this.addEvent(tdoc._id, 'problems', p)));
+        const pdict = await ProblemModel.getList(tdoc.domainId, tdoc.pids, true, false, ProblemModel.PROJECTION_CONTEST_DETAIL, true);
+        for (const [index, pid] of tdoc.pids.entries()) {
+            const problem = await this.adapter.toProblem(tdoc, pdict, index, pid);
+            await this.addEvent(tdoc._id, 'problems', problem);
+        }
+        /* eslint-enable no-await-in-loop */
 
         // groups
         await this.addEvent(tdoc._id, 'groups', { id: 'participants', name: '正式队伍' });
@@ -148,14 +122,14 @@ export class EventFeedManager {
         for (const i of tudocs) {
             const udoc = udict[i.uid];
             const orgId = crypto.createHash('md5').update(udoc.school || udoc.uname).digest('hex');
-            orgMap[orgId] ||= CCSAdapter.toOrganization(orgId, udoc);
+            orgMap[orgId] ||= this.adapter.toOrganization(orgId, udoc);
         }
         await Promise.all(Object.values(orgMap).map((org) => this.addEvent(tdoc._id, 'organizations', org)));
 
         // teams
         const teams = tudocs.map((i) => {
             const udoc = udict[i.uid];
-            return CCSAdapter.toTeam(udoc, i.unrank);
+            return this.adapter.toTeam(udoc, i.unrank);
         });
         await Promise.all(teams.map((team) => this.addEvent(tdoc._id, 'teams', team)));
 
@@ -167,9 +141,33 @@ export class EventFeedManager {
             solved: +i === STATUS.STATUS_ACCEPTED,
         })));
 
+        /* eslint-disable no-await-in-loop */
         // submissions & judgements
         const records = await RecordModel.getMulti(tdoc.domainId, { contest: tdoc._id }).sort({ _id: 1 }).toArray();
-        await Promise.all(records.map((rdoc) => this.handleSubmission(rdoc)));
-        await Promise.all(records.map((rdoc) => this.handleJudgement(rdoc)));
+        for (const rdoc of records) {
+            await this.addEvent(tdoc._id, 'submissions', this.adapter.toSubmission(tdoc, rdoc));
+            await this.addEvent(tdoc._id, 'judgements', this.adapter.toJudgement(tdoc, rdoc));
+            for (const testCase of rdoc.testCases) {
+                await this.addEvent(tdoc._id, 'runs', this.adapter.toRun(tdoc, rdoc, testCase));
+            }
+        }
+        /* eslint-enable no-await-in-loop */
+    }
+
+    async initializeContest(tdoc: Tdoc) {
+        const isInitialized = await this.isContestInitialized(tdoc);
+        const hasProblems = tdoc.pids && tdoc.pids.length > 0;
+        const hasParticipants = await ContestModel.countStatus(tdoc.domainId, { docId: tdoc._id }) > 0;
+        if (isInitialized) {
+            throw new ForbiddenError('CCS Contest already initialized.');
+        }
+        if (!hasProblems) {
+            throw new ForbiddenError('Contest has no problems.');
+        }
+        if (!hasParticipants) {
+            throw new ForbiddenError('Contest has no participants.');
+        }
+        await this.contestCollection.insertOne({ _id: new ObjectId(), domainId: tdoc.domainId, tid: tdoc._id });
+        await this.initializeEvent(tdoc);
     }
 }
