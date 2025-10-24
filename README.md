@@ -44,13 +44,13 @@
 
 - 进入 “系统设置” 修改 CCS 账户的默认密码：
 
-![](./.img/change-default-passwd.png)
+![](./images/change-default-passwd.png)
 
 - 若需要修改 CCS 账户密码，则联系管理员用户。
 
 - 确定以上所有比赛的赛前基本设置均已设置完毕且不再改变后，进入比赛详情页面，点击右侧菜单栏中的 “(CCS) 初始化比赛” 按钮对比赛数据初始化：
 
-![](./.img/init-contest.png)
+![](./images/init-contest.png)
 
 - 使用 ICPC Tools CDS 连接 CCS，CCS URL 格式为：  
 `http(s)://<domain>/ccs/api/contests/<ContestId>`
@@ -59,7 +59,7 @@
 
 - 若没有问题，CDS 将会按预期正常工作。
 
-![](./.img/cds.png)
+![](./images/cds.png)
 
 > [!TIP]
 > 比赛 ID 的获取就在你进入比赛后的 URL 里：
@@ -73,7 +73,7 @@
 > [!CAUTION]
 > 注意此操作会将此比赛的 CCS Events 以及数据全部清空，重新初始化后按预期会恢复目前比赛已有的所有事件。
 
-![](./.img/reset-contest.png)
+![](./images/reset-contest.png)
 
 ## Development
 
