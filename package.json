@@ -1,9 +1,20 @@
 {
   "name": "hydrooj-plugin-ccs",
   "author": "FrexCheat <frexdeveloper@gmail.com>",
-  "license": "AGPL-3.0-only",
+  "license": "AGPL-3.0-or-later",
   "version": "1.0.0",
-  "main": "src/index.ts",
+  "main": "index.ts",
+  "module": "index.ts",
+  "files": [
+    "images/",
+    "frontend/",
+    "handler/",
+    "lib/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FrexCheat/hydrooj-plugin-ccs.git"
+  },
   "scripts": {
     "lint": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --fix",
     "lint:ci": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --max-warnings=0"
