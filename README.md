@@ -1,6 +1,6 @@
 # hydrooj-plugin-ccs
 
-![NPM Version](https://img.shields.io/npm/v/hydrooj-plugin-ccs)
+![NPM Version](https://img.shields.io/npm/v/@frexdeveloper/hydrooj-plugin-ccs)
 
 为 Hydro OJ 中的 ACM/ICPC 赛制比赛添加部分 CCS(Contest Control System) API 支持
 
