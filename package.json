@@ -6,15 +6,15 @@
   "main": "index.ts",
   "module": "index.ts",
   "files": [
-    "images/",
     "frontend/",
     "handler/",
     "lib/"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/FrexCheat/hydrooj-plugin-ccs.git"
+    "url": "git+https://github.com/FrexCheat/hydrooj-plugin-ccs.git"
   },
+  "homepage": "https://github.com/FrexCheat/hydrooj-plugin-ccs",
   "scripts": {
     "lint": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --fix",
     "lint:ci": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --max-warnings=0"

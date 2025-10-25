@@ -1,5 +1,7 @@
 # hydrooj-plugin-ccs
 
+![NPM Version](https://img.shields.io/npm/v/hydrooj-plugin-ccs)
+
 为 Hydro OJ 中的 ACM/ICPC 赛制比赛添加部分 CCS(Contest Control System) API 支持
 
 ## 已支持
@@ -30,11 +32,11 @@
 - `Persons` 接口
 - `Accounts` 接口
 - `Commentary` 接口
-- 所有 `POST` / `PUT` / `PATCH` 接口
+- 部分 `POST` / `PUT` / `PATCH` 接口
 
 ## How to use
 
-- 安装本插件到你的 Hydro OJ 并重启 Hydro OJ
+- 安装插件并重启 Hydro OJ
 - 创建好 ACM/ICPC 赛制比赛，并将时间、题目、队伍等等一系列赛前设置全部设置完善，保持在随时可以开始比赛的状态即可。
 
 > [!CAUTION]
@@ -57,7 +59,7 @@
 - 如果你的比赛在特定的域中，那么预期的 URL 格式应为：  
 `http(s)://<domain>/d/<domainId>/ccs/api/contests/<ContestId>`
 
-- 若没有问题，CDS 将会按预期正常工作。
+- 若配置无误，CDS 将会按预期正常工作。
 
 ![](./images/cds.png)
 
@@ -68,7 +70,7 @@
 
 ## 注意事项
 
-在初始化后如果出现了比赛数据混乱或改动了任何有关比赛设置、队伍、题目等赛前数据，进入比赛详情页面，点击 “(CCS) 重置比赛” 对比赛数据进行重置。随后再点击 “(CCS) 初始化比赛” 重新初始化比赛数据：
+在初始化后如果出现比赛数据混乱或改动了任何有关比赛设置、队伍、题目等赛前数据，进入比赛详情页面，点击 “(CCS) 重置比赛” 对比赛数据进行重置。随后再点击 “(CCS) 初始化比赛” 重新初始化比赛数据：
 
 > [!CAUTION]
 > 注意此操作会将此比赛的 CCS Events 以及数据全部清空，重新初始化后按预期会恢复目前比赛已有的所有事件。
