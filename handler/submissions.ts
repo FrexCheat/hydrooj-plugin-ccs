@@ -6,7 +6,7 @@ export class SubmissionsHandler extends BaseHandler {
     @param('id', Types.String, true)
     async get(domainId: string, contestId: string, id: string) {
         const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
-        const records = await RecordModel.getMulti(tdoc.domainId, { contest: tdoc._id }).toArray();
+        const records = await RecordModel.getMulti(tdoc.domainId, { contest: tdoc._id }).sort({ _id: 1 }).toArray();
         if (id) {
             const rdoc = records.find((r) => r._id.toString() === id);
             if (!rdoc) {
