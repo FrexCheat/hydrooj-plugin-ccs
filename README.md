@@ -19,7 +19,7 @@
 - `/api/contests/<contestId>/submissions`
 - `/api/contests/<contestId>/judgements`
 - `/api/contests/<contestId>/runs`
-- `/api/contests/<contestId>/event-feed` (支持 `stream` 和 `sinceToken` 查询参数)
+- `/api/contests/<contestId>/event-feed` (支持 `stream` 和 `since_token` 查询参数)
 
 ## 未支持
 
@@ -48,8 +48,6 @@
 
 ![](./images/change-default-passwd.png)
 
-- 若需要修改 CCS 账户密码，则联系管理员用户。
-
 - 确定以上所有比赛的赛前基本设置均已设置完毕且不再改变后，进入比赛详情页面，点击右侧菜单栏中的 “(CCS) 初始化比赛” 按钮对比赛数据初始化：
 
 ![](./images/init-contest.png)
@@ -64,7 +62,7 @@
 ![](./images/cds.png)
 
 > [!TIP]
-> 比赛 ID 的获取就在你进入比赛后的 URL 里：
+> 比赛 ID 就在你进入比赛详情页面后的 URL 里：
 >
 > 形如 `http(s)://xxxx/contest/68ead09f61ab6063d9fcd417`，比赛 ID 就是 `68ead09f61ab6063d9fcd417`
 
@@ -76,12 +74,5 @@
 > 注意此操作会将此比赛的 CCS Events 以及数据全部清空，重新初始化后按预期会恢复目前比赛已有的所有事件。
 
 ![](./images/reset-contest.png)
-
-## Development
-
-- Clone this repo into your workspace
-- Enter your workspace for the repo's root dir
-- Run `yarn` to install deps
-- Run `yarn run lint` to lint your code
 
 ## PRs welcome ~
