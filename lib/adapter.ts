@@ -56,8 +56,8 @@ export class CCSAdapter {
             label: String.fromCharCode(65 + index),
             name: pdict[pid].title,
             ordinal: index,
-            color: (typeof (tdoc.balloon?.[index]) === 'object' ? tdoc.balloon[index].name : tdoc.balloon?.[index]) || 'white',
-            rgb: (typeof (tdoc.balloon?.[index]) === 'object' ? tdoc.balloon[index].color : null) || '#ffffff',
+            color: (typeof (tdoc.balloon?.[pid]) === 'object' ? tdoc.balloon[pid].name : tdoc.balloon?.[pid]) || 'white',
+            rgb: (typeof (tdoc.balloon?.[pid]) === 'object' ? tdoc.balloon[pid].color : null) || '#ffffff',
             time_limit: ((pdict[pid].config as ProblemConfig).timeMax) / 1000,
             test_data_count: (referenceData ? getTestCasesCount(referenceData.data) : getTestCasesCount(pdict[pid].data)),
         };
