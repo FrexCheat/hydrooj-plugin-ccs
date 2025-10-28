@@ -20,13 +20,14 @@ export class CCSAdapter {
     }
 
     public toState(tdoc: Tdoc): CCState {
+        /* eslint-disable max-len */
         const nowTime = new Date();
         const started = (ContestModel.isOngoing(tdoc)) ? TimeUtils.formatTime(tdoc.beginAt) : null;
         const ended = ContestModel.isDone(tdoc) ? TimeUtils.formatTime(tdoc.endAt) : null;
         const frozen = tdoc.lockAt
-            ? (ContestModel.isDone(tdoc) ? TimeUtils.formatTime(tdoc.lockAt) : (tdoc.unlocked ? null : TimeUtils.formatTime(tdoc.lockAt)))
+            ? (ContestModel.isDone(tdoc) ? TimeUtils.formatTime(tdoc.lockAt) : (ContestModel.isLocked(tdoc) ? TimeUtils.formatTime(tdoc.lockAt) : null))
             : null;
-        const thawed = (ContestModel.isDone(tdoc) && tdoc.unlocked) ? TimeUtils.formatTime(nowTime) : null;
+        const thawed = (ContestModel.isDone(tdoc) && !ContestModel.isLocked(tdoc)) ? TimeUtils.formatTime(nowTime) : null;
         return {
             started,
             frozen,
@@ -35,6 +36,7 @@ export class CCSAdapter {
             finalized: null,
             end_of_updates: null,
         };
+        /* eslint-enable max-len */
     }
 
     public async toProblem(tdoc: Tdoc, pdict: ProblemDict, index: number, pid: number): Promise<CCSProblem> {

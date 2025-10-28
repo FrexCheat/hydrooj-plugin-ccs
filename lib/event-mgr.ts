@@ -57,13 +57,13 @@ export class EventFeedManager {
             await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
         } else if (ContestModel.isOngoing(tdoc) && !stateData.started) {
             await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
-        } else if (ContestModel.isOngoing(tdoc) && !tdoc.unlocked && !stateData.frozen) {
+        } else if (ContestModel.isOngoing(tdoc) && ContestModel.isLocked(tdoc) && !stateData.frozen) {
             await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
         } else if (ContestModel.isDone(tdoc) && !stateData.frozen) {
             await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
         } else if (ContestModel.isDone(tdoc) && !stateData.ended) {
             await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
-        } else if (ContestModel.isDone(tdoc) && tdoc.unlocked && !stateData.thawed) {
+        } else if (ContestModel.isDone(tdoc) && !ContestModel.isLocked(tdoc) && !stateData.thawed) {
             await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
         }
     }
