@@ -4,6 +4,10 @@
 
 为 Hydro OJ 中的 ACM/ICPC 赛制比赛添加部分 CCS(Contest Control System) API 支持
 
+## 特别提醒
+
+开源项目不提供任何技术支持，如有需要，请 [添加 Hydro 官方 QQ 群联系群主咨询](https://qm.qq.com/q/NsYu3dNXa2)
+
 ## 已支持
 
 - `/api`
