@@ -28,7 +28,7 @@
 ## 未支持
 
 - `webhooks` 接口
-- `clarifications` 接口
+- `scoreboard` 接口
 
 ## 未计划支持
 
@@ -36,6 +36,7 @@
 - `Persons` 接口
 - `Accounts` 接口
 - `Commentary` 接口
+- `Clarifications` 接口
 - 部分 `POST` / `PUT` / `PATCH` 接口
 
 ## How to use
