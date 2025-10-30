@@ -58,7 +58,7 @@ export class CCSAdapter {
             ordinal: index,
             color: (typeof (tdoc.balloon?.[pid]) === 'object' ? tdoc.balloon[pid].name : tdoc.balloon?.[pid]) || 'white',
             rgb: (typeof (tdoc.balloon?.[pid]) === 'object' ? tdoc.balloon[pid].color : null) || '#ffffff',
-            time_limit: ((pdict[pid].config as ProblemConfig).timeMax) / 1000,
+            time_limit: (((referenceData ? referenceData.config : pdict[pid].config) as ProblemConfig).timeMax) / 1000,
             test_data_count: (referenceData ? getTestCasesCount(referenceData.data) : getTestCasesCount(pdict[pid].data)),
         };
     }
