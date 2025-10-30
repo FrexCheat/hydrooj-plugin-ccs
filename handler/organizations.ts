@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { ContestModel, ObjectId, param, Types, UserModel } from 'hydrooj';
 import { CCSOrganization } from '../lib/types';
 import { BaseHandler } from './base';
@@ -12,7 +13,7 @@ export class OrganizationsHandler extends BaseHandler {
         const orgMap: Record<string, CCSOrganization> = {};
         for (const i of tudocs) {
             const udoc = udict[i.uid];
-            const orgId = btoa(udoc.school || udoc.uname).replace(/=/g, '');
+            const orgId = crypto.createHash('md5').update(udoc.school || udoc.uname).digest('hex');
             orgMap[orgId] ||= this.adapter.toOrganization(orgId, udoc);
         }
         if (id) {
