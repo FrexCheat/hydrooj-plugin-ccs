@@ -1,6 +1,5 @@
 /* eslint-disable max-len */
 import crypto from 'crypto';
-import { PassThrough } from 'stream';
 import { Collection } from 'mongodb';
 import { ContestModel, Context, ForbiddenError, ObjectId, ProblemModel, RecordDoc, RecordModel, STATUS, STATUS_SHORT_TEXTS, STATUS_TEXTS, Tdoc, UserModel } from 'hydrooj';
 import { CCSAdapter } from './adapter';
@@ -39,14 +38,13 @@ export class EventFeedManager {
         return this.eventCollection.find(query).toArray();
     }
 
-    public writeEventToStream(passthrough: PassThrough, event: CCSEventDoc) {
-        const result = {
+    public getEventAsText(event: CCSEventDoc) {
+        return JSON.stringify({
             type: event.type as EventType,
             id: event.data.id ? `${event.data.id}` : null,
             data: event.data,
-            token: `${event._id.toHexString()}`,
-        };
-        passthrough.write(`${JSON.stringify(result)}\n`);
+            token: event._id.toHexString(),
+        });
     }
 
     async addMissingStateEvent(tdoc: Tdoc) {

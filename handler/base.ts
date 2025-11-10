@@ -1,35 +1,42 @@
-import { ContestModel, ForbiddenError, Handler, NotFoundError, ObjectId, param, Types } from 'hydrooj';
+import {
+    ConnectionHandler, ContestModel, Context, ForbiddenError, Handler,
+    HandlerCommon, NotFoundError, ObjectId, param, Types,
+} from 'hydrooj';
 import { CCSAdapter } from '../lib/adapter';
 import { EventFeedManager } from '../lib/event-mgr';
 
-export class BaseHandler extends Handler {
-    public eventManager = new EventFeedManager(this.ctx);
-    public adapter = new CCSAdapter();
+function CCSMixin<TBase extends new (...args: any[]) => HandlerCommon<Context>>(Base: TBase) {
+    return class CCSBase extends Base {
+        public eventManager = new EventFeedManager(this.ctx);
+        public adapter = new CCSAdapter();
 
-    public checkAuth() {
-        const authHeader = this.request.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Basic ')) return false;
-        const base64Credentials = authHeader.substring(6);
-        const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-        const [username, password] = credentials.split(':');
-        if (username !== this.ctx.setting.get('ccs.username') || password !== this.ctx.setting.get('ccs.password')) {
-            return false;
+        public checkAuth() {
+            const authHeader = this.request.headers.authorization;
+            if (!authHeader || !authHeader.startsWith('Basic ')) return false;
+            const base64Credentials = authHeader.substring(6);
+            const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+            const [username, password] = credentials.split(':');
+            if (username !== this.ctx.setting.get('ccs.username') || password !== this.ctx.setting.get('ccs.password')) {
+                return false;
+            }
+            return true;
         }
-        return true;
-    }
 
-    @param('contestId', Types.String, true)
-    async prepare(domainId: string, contestId: string) {
-        if (!this.checkAuth()) throw new ForbiddenError('Unauthorized');
-        if (contestId) {
-            const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
-            if (!tdoc) throw new NotFoundError('Contest not found');
-            if (!(await this.eventManager.isContestInitialized(tdoc))) {
-                throw new ForbiddenError('Contest not be initialized');
+        async _prepare({ domainId, contestId }) {
+            if (!this.checkAuth()) throw new ForbiddenError('Unauthorized');
+            if (contestId) {
+                const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
+                if (!tdoc) throw new NotFoundError('Contest not found');
+                if (!(await this.eventManager.isContestInitialized(tdoc))) {
+                    throw new ForbiddenError('Contest not be initialized');
+                }
             }
         }
-    }
+    };
 }
+
+export const BaseHandler = CCSMixin(Handler);
+export const ConnectionBaseHandler = CCSMixin(ConnectionHandler);
 
 export class CCSOperationHandler extends Handler {
     public eventManager = new EventFeedManager(this.ctx);

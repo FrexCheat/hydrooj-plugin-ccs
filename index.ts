@@ -1,4 +1,4 @@
-import { Context, SettingModel } from 'hydrooj';
+import { Context, Schema } from 'hydrooj';
 import * as handler from './handler';
 import { EventFeedManager } from './lib/event-mgr';
 import { CCSEventContest, CCSEventDoc } from './lib/types';
@@ -10,7 +10,13 @@ declare module 'hydrooj' {
     }
 }
 
-export default async function apply(ctx: Context) {
+export const name = 'ccs';
+export const Config = Schema.object({
+    username: Schema.string().default('ccs_hydro').description('CCS Username'),
+    password: Schema.string().default('defaultKey@ccs').description('CCS Password'),
+});
+
+export async function apply(ctx: Context) {
     const eventManager = new EventFeedManager(ctx);
     ctx.Route('ccs_operation', '/ccs/api/contests/:contestId/operation/:operation', handler.CCSOperationHandler);
     ctx.Route('ccs_api_info', '/ccs/api', handler.ApiInfoHandler);
@@ -35,14 +41,8 @@ export default async function apply(ctx: Context) {
     ctx.Route('ccs_contest_judgement', '/ccs/api/contests/:contestId/judgements/:id', handler.JudgementsHandler);
     ctx.Route('ccs_contest_runs', '/ccs/api/contests/:contestId/runs', handler.RunsHandler);
     ctx.Route('ccs_contest_run', '/ccs/api/contests/:contestId/runs/:id', handler.RunsHandler);
-    ctx.Route('ccs_contest_event_feed', '/ccs/api/contests/:contestId/event-feed', handler.EventFeedHandler);
+    ctx.Connection('ccs_contest_event_feed', '/ccs/api/contests/:contestId/event-feed', handler.EventFeedHandler);
     ctx.on('record/change', async (rdoc, $set, $push) => { await eventManager.handleRecordChange(rdoc, $set, $push); });
-    ctx.inject(['setting'], (c) => {
-        c.setting.SystemSetting(
-            SettingModel.Setting('setting_ccs_account', 'ccs.username', 'ccs_hydro', 'text', 'ccs.username', 'CCS UserName'),
-            SettingModel.Setting('setting_ccs_account', 'ccs.password', 'defaultKey@ccs', 'text', 'ccs.password', 'CCS Password'),
-        );
-    });
     ctx.i18n.load('zh', {
         setting_ccs_account: 'CCS 账号设置',
         'CCS UserName': 'CCS 用户名',
