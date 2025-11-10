@@ -10,7 +10,7 @@ declare module 'hydrooj' {
     }
 }
 
-export const name = 'ccs';
+export const name = '@frexdeveloper/hydrooj-plugin-ccs';
 export const Config = Schema.object({
     username: Schema.string().default('ccs_hydro').description('CCS Username'),
     password: Schema.string().default('defaultKey@ccs').description('CCS Password'),
