@@ -5,6 +5,43 @@ import {
 import { CCSAdapter } from '../lib/adapter';
 import { EventFeedManager } from '../lib/event-mgr';
 
+export class CCSOperationHandler extends Handler {
+    public eventManager = new EventFeedManager(this.ctx);
+    async prepare() {
+        this.checkPriv(-1);
+    }
+
+    @param('contestId', Types.String)
+    @param('operation', Types.String)
+    async post(domainId: string, contestId: string, operation: string) {
+        const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
+        if (!tdoc) throw new NotFoundError('Contest not found');
+        if (operation === 'init') {
+            await this.eventManager.initializeContest(tdoc);
+            this.response.status = 200;
+            this.response.body = { message: '比赛数据初始化成功！' };
+        } else if (operation === 'reset') {
+            await this.eventManager.resetContest(tdoc);
+            this.response.status = 200;
+            this.response.body = { message: '比赛数据重置成功！' };
+        }
+    }
+}
+
+export class ApiInfoHandler extends Handler {
+    async get() {
+        this.response.body = {
+            version: '2023-06',
+            version_url: 'https://ccs-specs.icpc.io/2023-06/contest_api',
+            name: 'HydroOJ CCS API',
+            provider: {
+                name: 'HydroOJ CCS Plugin',
+                version: '1.0.0',
+            },
+        };
+    }
+}
+
 function CCSMixin<TBase extends new (...args: any[]) => HandlerCommon<Context>>(Base: TBase) {
     return class CCSBase extends Base {
         public eventManager = new EventFeedManager(this.ctx);
@@ -37,40 +74,3 @@ function CCSMixin<TBase extends new (...args: any[]) => HandlerCommon<Context>>(
 
 export const BaseHandler = CCSMixin(Handler);
 export const ConnectionBaseHandler = CCSMixin(ConnectionHandler);
-
-export class CCSOperationHandler extends Handler {
-    public eventManager = new EventFeedManager(this.ctx);
-    async prepare() {
-        this.checkPriv(-1);
-    }
-
-    @param('contestId', Types.String)
-    @param('operation', Types.String)
-    async post(domainId: string, contestId: string, operation: string) {
-        const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
-        if (!tdoc) throw new NotFoundError('Contest not found');
-        if (operation === 'init') {
-            await this.eventManager.initializeContest(tdoc);
-            this.response.status = 200;
-            this.response.body = { message: '比赛数据初始化成功！' };
-        } else if (operation === 'reset') {
-            await this.eventManager.resetContest(tdoc);
-            this.response.status = 200;
-            this.response.body = { message: '比赛数据重置成功！' };
-        }
-    }
-}
-
-export class ApiInfoHandler extends BaseHandler {
-    async get() {
-        this.response.body = {
-            version: '2023-06',
-            version_url: 'https://ccs-specs.icpc.io/2023-06/contest_api',
-            name: 'HydroOJ CCS API',
-            provider: {
-                name: 'HydroOJ CCS Plugin',
-                version: '1.0.0',
-            },
-        };
-    }
-}

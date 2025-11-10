@@ -42,19 +42,17 @@ export async function apply(ctx: Context) {
     ctx.Route('ccs_contest_runs', '/ccs/api/contests/:contestId/runs', handler.RunsHandler);
     ctx.Route('ccs_contest_run', '/ccs/api/contests/:contestId/runs/:id', handler.RunsHandler);
     ctx.Connection('ccs_contest_event_feed', '/ccs/api/contests/:contestId/event-feed', handler.EventFeedHandler);
+    ctx.Route('ccs_contest_event_feed_normal', '/ccs/api/contests/:contestId/event-feed', handler.EventFeedNormalHandler);
     ctx.on('record/change', async (rdoc, $set, $push) => { await eventManager.handleRecordChange(rdoc, $set, $push); });
     ctx.i18n.load('zh', {
-        setting_ccs_account: 'CCS 账号设置',
         'CCS UserName': 'CCS 用户名',
         'CCS Password': 'CCS 密码',
     });
     ctx.i18n.load('zh-TW', {
-        setting_ccs_account: 'CCS 帳號設定',
         'CCS UserName': 'CCS 使用者名稱',
         'CCS Password': 'CCS 密碼',
     });
     ctx.i18n.load('en', {
-        setting_ccs_account: 'CCS Account Settings',
         'CCS UserName': 'CCS UserName',
         'CCS Password': 'CCS Password',
     });
