@@ -3,6 +3,7 @@ __*
 !__mocks__
 !.gitkeep
 *.local
+.npmrc
 
 yarn.lock
 .yarn
