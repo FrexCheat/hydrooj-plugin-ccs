@@ -48,12 +48,13 @@ function CCSMixin<TBase extends new (...args: any[]) => HandlerCommon<Context>>(
         public adapter = new CCSAdapter();
 
         public checkAuth() {
-            const authHeader = this.request.headers.authorization;
+            const authHeader = this.request.headers.authorization || decodeURIComponent(this.args.auth || '');
             if (!authHeader || !authHeader.startsWith('Basic ')) return false;
             const base64Credentials = authHeader.substring(6);
             const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
             const [username, password] = credentials.split(':');
-            if (username !== this.ctx.setting.get('ccs.username') || password !== this.ctx.setting.get('ccs.password')) {
+            if (username !== this.ctx.setting.get('@frexdeveloper/hydrooj-plugin-ccs.username')
+                || password !== this.ctx.setting.get('@frexdeveloper/hydrooj-plugin-ccs.password')) {
                 return false;
             }
             return true;

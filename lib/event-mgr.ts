@@ -67,7 +67,7 @@ export class EventFeedManager {
     }
 
     async handleRecordChange(rdoc: RecordDoc, $set: any, $push: any) {
-        if (!rdoc.contest || rdoc.contest.toHexString() === '000000000000000000000000') return;
+        if (!rdoc.contest || rdoc.contest.toHexString().startsWith('0'.repeat(23))) return;
         const tdoc = await ContestModel.get(rdoc.domainId, rdoc.contest);
         if (!tdoc) return;
         if (!(await this.isContestInitialized(tdoc))) return;
