@@ -44,6 +44,7 @@ export class ApiInfoHandler extends Handler {
 
 function CCSMixin<TBase extends new (...args: any[]) => HandlerCommon<Context>>(Base: TBase) {
     return class CCSBase extends Base {
+        public noCheckPermView = true;
         public eventManager = new EventFeedManager(this.ctx);
         public adapter = new CCSAdapter();
 
