@@ -36,7 +36,7 @@ export class ApiInfoHandler extends Handler {
             name: 'HydroOJ CCS API',
             provider: {
                 name: 'HydroOJ CCS Plugin',
-                version: '1.0.4',
+                version: '1.0.5',
             },
         };
     }
