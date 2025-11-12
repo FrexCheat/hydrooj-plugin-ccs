@@ -16,10 +16,6 @@
     "url": "git+https://github.com/FrexCheat/hydrooj-plugin-ccs.git"
   },
   "homepage": "https://github.com/FrexCheat/hydrooj-plugin-ccs",
-  "scripts": {
-    "lint": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --fix",
-    "lint:ci": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --max-warnings=0"
-  },
   "dependencies": {
     "@hydrooj/ui-default": "^4.58.0-beta.10",
     "hydrooj": "^5.0.0-beta.11"
