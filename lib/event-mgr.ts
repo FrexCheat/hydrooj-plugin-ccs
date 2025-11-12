@@ -1,17 +1,20 @@
-/* eslint-disable max-len */
+import {
+    ContestModel, Context, ForbiddenError, ObjectId, ProblemModel, Service,
+    RecordDoc, RecordModel, STATUS, STATUS_SHORT_TEXTS, STATUS_TEXTS, Tdoc, UserModel
+} from 'hydrooj';
 import crypto from 'crypto';
 import { Collection } from 'mongodb';
-import { ContestModel, Context, ForbiddenError, ObjectId, ProblemModel, RecordDoc, RecordModel, STATUS, STATUS_SHORT_TEXTS, STATUS_TEXTS, Tdoc, UserModel } from 'hydrooj';
 import { CCSAdapter } from './adapter';
 import { CCSEventContest, CCSEventDoc, CCState, EventType } from './types';
-/* eslint-enable max-len */
 
-export class EventFeedManager {
-    private adapter = new CCSAdapter();
+export class CCSEventFeedService extends Service {
+    public adapter: CCSAdapter;
     public eventCollection: Collection<CCSEventDoc>;
     public contestCollection: Collection<CCSEventContest>;
 
     constructor(ctx: Context) {
+        super(ctx, 'ccs');
+        this.adapter = new CCSAdapter();
         this.eventCollection = ctx.db.collection('ccs.event');
         this.contestCollection = ctx.db.collection('ccs.contest');
     }
@@ -49,19 +52,26 @@ export class EventFeedManager {
 
     async addMissingStateEvent(tdoc: Tdoc) {
         const stateEvents = await this.getEvents(tdoc._id, null, 'state');
-        const lastStateEvent = stateEvents.reverse()[0];
-        const stateData: CCState | null = lastStateEvent ? lastStateEvent.data as CCState : null;
+        const lastStateEvent = stateEvents[stateEvents.length - 1];
+        const stateData: CCState | null = lastStateEvent?.data as CCState ?? null;
+        
         if (!stateData) {
             await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
-        } else if (ContestModel.isOngoing(tdoc) && !stateData.started) {
-            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
-        } else if (ContestModel.isOngoing(tdoc) && ContestModel.isLocked(tdoc) && !stateData.frozen) {
-            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
-        } else if (ContestModel.isDone(tdoc) && !stateData.frozen) {
-            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
-        } else if (ContestModel.isDone(tdoc) && !stateData.ended) {
-            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
-        } else if (ContestModel.isDone(tdoc) && !ContestModel.isLocked(tdoc) && !stateData.thawed) {
+            return;
+        }
+
+        const isOngoing = ContestModel.isOngoing(tdoc);
+        const isDone = ContestModel.isDone(tdoc);
+        const isLocked = ContestModel.isLocked(tdoc);
+
+        const shouldAddEvent = (
+            (isOngoing && !stateData.started) ||
+            (isOngoing && isLocked && !stateData.frozen) ||
+            (isDone && !stateData.ended) ||
+            (isDone && !isLocked && !stateData.thawed)
+        );
+
+        if (shouldAddEvent) {
             await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
         }
     }

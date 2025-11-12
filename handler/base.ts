@@ -1,27 +1,24 @@
 import {
-    ConnectionHandler, ContestModel, Context, ForbiddenError, Handler,
-    HandlerCommon, NotFoundError, ObjectId, param, Types,
+    ConnectionHandler, ContestModel, Context, ForbiddenError,
+    Handler, HandlerCommon, NotFoundError, ObjectId, param, Types,
 } from 'hydrooj';
-import { CCSAdapter } from '../lib/adapter';
-import { EventFeedManager } from '../lib/event-mgr';
 
 export class CCSOperationHandler extends Handler {
-    public eventManager = new EventFeedManager(this.ctx);
     async prepare() {
         this.checkPriv(-1);
     }
 
-    @param('contestId', Types.String)
+    @param('contestId', Types.ObjectId)
     @param('operation', Types.String)
-    async post(domainId: string, contestId: string, operation: string) {
-        const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
+    async post(domainId: string, contestId: ObjectId, operation: string) {
+        const tdoc = await ContestModel.get(domainId, contestId);
         if (!tdoc) throw new NotFoundError('Contest not found');
         if (operation === 'init') {
-            await this.eventManager.initializeContest(tdoc);
+            await this.ctx.ccs.initializeContest(tdoc);
             this.response.status = 200;
             this.response.body = { message: '比赛数据初始化成功！' };
         } else if (operation === 'reset') {
-            await this.eventManager.resetContest(tdoc);
+            await this.ctx.ccs.resetContest(tdoc);
             this.response.status = 200;
             this.response.body = { message: '比赛数据重置成功！' };
         }
@@ -44,21 +41,27 @@ export class ApiInfoHandler extends Handler {
 
 function CCSMixin<TBase extends new (...args: any[]) => HandlerCommon<Context>>(Base: TBase) {
     return class CCSBase extends Base {
-        public noCheckPermView = true;
-        public eventManager = new EventFeedManager(this.ctx);
-        public adapter = new CCSAdapter();
+        noCheckPermView = true;
+        public eventManager = this.ctx.ccs;
+        public adapter = this.ctx.ccs.adapter;
 
         public checkAuth() {
-            const authHeader = this.request.headers.authorization || decodeURIComponent(this.args.auth || '');
-            if (!authHeader || !authHeader.startsWith('Basic ')) return false;
-            const base64Credentials = authHeader.substring(6);
-            const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-            const [username, password] = credentials.split(':');
-            if (username !== this.ctx.setting.get('@frexdeveloper/hydrooj-plugin-ccs.username')
-                || password !== this.ctx.setting.get('@frexdeveloper/hydrooj-plugin-ccs.password')) {
-                return false;
+            const usernamePlain = this.ctx.setting.get('@frexdeveloper/hydrooj-plugin-ccs.username') as string;
+            const passwordPlain = this.ctx.setting.get('@frexdeveloper/hydrooj-plugin-ccs.password') as string;
+            const credential = Buffer.from(`${usernamePlain}:${passwordPlain}`).toString('base64');
+            const authHeader = this.request.headers.authorization || '';
+            const authQuery = decodeURIComponent(this.args.auth || '');
+            if (authHeader && authHeader.startsWith('Basic')) {
+                const base64Credential = authHeader.slice('Basic'.length).trim();
+                if (base64Credential === credential) {
+                    return true;
+                }
+            } else if (authQuery) {
+                if (authQuery === credential) {
+                    return true;
+                }
             }
-            return true;
+            return false;
         }
 
         async _prepare({ domainId, contestId }) {
@@ -66,7 +69,7 @@ function CCSMixin<TBase extends new (...args: any[]) => HandlerCommon<Context>>(
             if (contestId) {
                 const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
                 if (!tdoc) throw new NotFoundError('Contest not found');
-                if (!(await this.eventManager.isContestInitialized(tdoc))) {
+                if (!(await this.ctx.ccs.isContestInitialized(tdoc))) {
                     throw new ForbiddenError('Contest not be initialized');
                 }
             }

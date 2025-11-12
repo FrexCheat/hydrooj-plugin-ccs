@@ -1,10 +1,10 @@
-import { param, Types } from 'hydrooj';
+import { param, Types, ObjectId } from 'hydrooj';
 import { BaseHandler } from './base';
 
 export class LanguagesHandler extends BaseHandler {
-    @param('contestId', Types.String)
+    @param('contestId', Types.ObjectId)
     @param('id', Types.String, true)
-    async get(domainId: string, contestId: string, id: string) {
+    async get(domainId: string, contestId: ObjectId, id: string) {
         const languagesMap: Record<string, string> = {
             c: 'C',
             cpp: 'C++',

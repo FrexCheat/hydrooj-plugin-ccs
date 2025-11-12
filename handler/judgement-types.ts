@@ -1,10 +1,10 @@
-import { param, STATUS, STATUS_SHORT_TEXTS, STATUS_TEXTS, Types } from 'hydrooj';
+import { param, STATUS, STATUS_SHORT_TEXTS, STATUS_TEXTS, Types, ObjectId } from 'hydrooj';
 import { BaseHandler } from './base';
 
 export class JudgementTypesHandler extends BaseHandler {
-    @param('contestId', Types.String)
+    @param('contestId', Types.ObjectId)
     @param('id', Types.String, true)
-    async get(domainId: string, contestId: string, id: string) {
+    async get(domainId: string, contestId: ObjectId, id: string) {
         if (id) {
             const statusKey = Object.keys(STATUS_SHORT_TEXTS).find((key) => STATUS_SHORT_TEXTS[key] === id);
             if (!statusKey) {

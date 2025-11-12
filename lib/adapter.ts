@@ -1,6 +1,12 @@
+import {
+    ContestModel, FileInfo, ProblemConfig, ProblemDict, ProblemModel,
+    RecordDoc, STATUS_SHORT_TEXTS, Tdoc, TestCase, User
+} from 'hydrooj';
+import {
+    CCSContest, CCSJudgement, CCSOrganization,
+    CCSProblem, CCSRun, CCState, CCSTeam, CCSubmission
+} from './types';
 import crypto from 'crypto';
-import { ContestModel, FileInfo, ProblemConfig, ProblemDict, ProblemModel, RecordDoc, STATUS_SHORT_TEXTS, Tdoc, TestCase, User } from 'hydrooj';
-import { CCSContest, CCSJudgement, CCSOrganization, CCSProblem, CCSRun, CCState, CCSTeam, CCSubmission } from './types';
 import { TimeUtils } from './utils';
 
 export class CCSAdapter {

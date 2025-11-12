@@ -2,10 +2,10 @@ import { ContestModel, ObjectId, param, ProblemModel, Types } from 'hydrooj';
 import { BaseHandler } from './base';
 
 export class ProblemsHandler extends BaseHandler {
-    @param('contestId', Types.String)
+    @param('contestId', Types.ObjectId)
     @param('id', Types.ProblemId, true)
-    async get(domainId: string, contestId: string, id: number) {
-        const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
+    async get(domainId: string, contestId: ObjectId, id: number) {
+        const tdoc = await ContestModel.get(domainId, contestId);
         const pdict = await ProblemModel.getList(tdoc.domainId, tdoc.pids, true, false, ProblemModel.PROJECTION_CONTEST_DETAIL, true);
         if (id) {
             const pid = tdoc.pids[id];

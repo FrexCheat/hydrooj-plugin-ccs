@@ -4,10 +4,10 @@ import { CCSOrganization } from '../lib/types';
 import { BaseHandler } from './base';
 
 export class OrganizationsHandler extends BaseHandler {
-    @param('contestId', Types.String)
+    @param('contestId', Types.ObjectId)
     @param('id', Types.String, true)
-    async get(domainId: string, contestId: string, id: string) {
-        const tdoc = await ContestModel.get(domainId, new ObjectId(contestId));
+    async get(domainId: string, contestId: ObjectId, id: string) {
+        const tdoc = await ContestModel.get(domainId, contestId);
         const tudocs = await ContestModel.getMultiStatus(tdoc.domainId, { docId: tdoc._id }).toArray();
         const udict = await UserModel.getList(tdoc.domainId, tudocs.map((i) => i.uid));
         const orgMap: Record<string, CCSOrganization> = {};

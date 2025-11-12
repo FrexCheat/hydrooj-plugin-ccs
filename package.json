@@ -20,12 +20,6 @@
     "lint": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --fix",
     "lint:ci": "eslint --ext .ts,.tsx,.jsx,.yaml,.yml --max-warnings=0"
   },
-  "devDependencies": {
-    "@hydrooj/eslint-config": "^3.0.2",
-    "@vue/compiler-sfc": "^3.5.24",
-    "eslint": "^9.39.1",
-    "eslint-import-resolver-typescript": "^4.4.4"
-  },
   "dependencies": {
     "@hydrooj/ui-default": "^4.58.0-beta.10",
     "hydrooj": "^5.0.0-beta.11"

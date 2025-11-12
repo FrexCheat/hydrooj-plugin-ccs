@@ -6,10 +6,10 @@ export class EventFeedHandler extends ConnectionBaseHandler {
     @param('contestId', Types.ObjectId)
     @param('since_token', Types.ObjectId, true)
     @param('stream', Types.Boolean, true)
-    async prepare(domainId: string, tid: ObjectId, sinceId: ObjectId, stream = true) {
-        const tdoc = await ContestModel.get(domainId, tid);
+    async prepare(domainId: string, contestId: ObjectId, since_token: ObjectId, stream = true) {
+        const tdoc = await ContestModel.get(domainId, contestId);
         let lastEventId: ObjectId | null = null;
-        const events = await this.eventManager.getEvents(tdoc._id, sinceId);
+        const events = await this.eventManager.getEvents(tdoc._id, since_token);
         for (const edoc of events) {
             this.send(this.eventManager.getEventAsText(edoc));
             lastEventId = edoc._id;
@@ -41,11 +41,11 @@ export class EventFeedNormalHandler extends BaseHandler {
     @param('contestId', Types.ObjectId)
     @param('since_token', Types.ObjectId, true)
     @param('stream', Types.Boolean, true)
-    async get(domainId: string, tid: ObjectId, sinceId: ObjectId, stream = true) {
+    async get(domainId: string, contestId: ObjectId, since_token: ObjectId, stream = true) {
         const streamPipe = new PassThrough();
         let lastEventId: ObjectId | null = null;
-        const tdoc = await ContestModel.get(domainId, tid);
-        const events = await this.eventManager.getEvents(tdoc._id, sinceId);
+        const tdoc = await ContestModel.get(domainId, contestId);
+        const events = await this.eventManager.getEvents(tdoc._id, since_token);
         this.response.type = 'application/x-ndjson';
         this.response.addHeader('Connection', 'keep-alive');
         this.response.addHeader('Cache-Control', 'no-cache');
