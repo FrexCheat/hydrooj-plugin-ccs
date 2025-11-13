@@ -1,6 +1,6 @@
 export { ApiInfoHandler, CCSOperationHandler } from './base';
 export { ContestsHandler } from './contests';
-export { EventFeedHandler, EventFeedNormalHandler } from './event-feed';
+export { EventFeedHandler } from './event-feed';
 export { GroupsHandler } from './groups';
 export { JudgementTypesHandler } from './judgement-types';
 export { JudgementsHandler } from './judgements';

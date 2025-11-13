@@ -22,6 +22,7 @@ export const Config = Schema.object({
 export async function apply(ctx: Context) {
     ctx.plugin(CCSEventFeedService);
     ctx.inject(['ccs'], async (c: Context) => {
+        c.server.config.enableSSE = true;
         c.Route('ccs_operation', '/ccs/api/contests/:contestId/operation/:operation', handler.CCSOperationHandler);
         c.Route('ccs_api_info', '/ccs/api', handler.ApiInfoHandler);
         c.Route('ccs_contests', '/ccs/api/contests', handler.ContestsHandler);
@@ -46,7 +47,6 @@ export async function apply(ctx: Context) {
         c.Route('ccs_contest_runs', '/ccs/api/contests/:contestId/runs', handler.RunsHandler);
         c.Route('ccs_contest_run', '/ccs/api/contests/:contestId/runs/:id', handler.RunsHandler);
         c.Connection('ccs_contest_event_feed', '/ccs/api/contests/:contestId/event-feed', handler.EventFeedHandler);
-        c.Route('ccs_contest_event_feed_normal', '/ccs/api/contests/:contestId/event-feed', handler.EventFeedNormalHandler);
         c.on('record/change', async (rdoc, $set, $push) => {
             await c.ccs.handleRecordChange(rdoc, $set, $push);
         });
