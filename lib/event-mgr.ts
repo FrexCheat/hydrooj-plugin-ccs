@@ -38,7 +38,7 @@ export class CCSEventFeedService extends Service {
 
     async getEvents(tid: ObjectId, sinceId: ObjectId | null = null, type: EventType | null = null) {
         const query = { ...(sinceId ? { _id: { $gt: sinceId } } : {}), tid, ...(type ? { type } : {}) };
-        return this.eventCollection.find(query).toArray();
+        return this.eventCollection.find(query).sort({ _id: 1 }).toArray();
     }
 
     public getEventAsText(event: CCSEventDoc) {
@@ -110,14 +110,12 @@ export class CCSEventFeedService extends Service {
         await this.addEvent(tdoc._id, 'languages', { id: 'rust', name: 'Rust' });
         await this.addEvent(tdoc._id, 'languages', { id: 'go', name: 'Go' });
 
-        /* eslint-disable no-await-in-loop */
         // problems
         const pdict = await ProblemModel.getList(tdoc.domainId, tdoc.pids, true, false, ProblemModel.PROJECTION_CONTEST_DETAIL, true);
         for (const [index, pid] of tdoc.pids.entries()) {
             const problem = await this.adapter.toProblem(tdoc, pdict, index, pid);
             await this.addEvent(tdoc._id, 'problems', problem);
         }
-        /* eslint-enable no-await-in-loop */
 
         // groups
         await this.addEvent(tdoc._id, 'groups', { id: 'participants', name: '正式队伍' });
@@ -149,7 +147,6 @@ export class CCSEventFeedService extends Service {
             solved: +i === STATUS.STATUS_ACCEPTED,
         })));
 
-        /* eslint-disable no-await-in-loop */
         // submissions & judgements
         const records = await RecordModel.getMulti(tdoc.domainId, { contest: tdoc._id }).sort({ _id: 1 }).toArray();
         for (const rdoc of records) {
@@ -159,7 +156,6 @@ export class CCSEventFeedService extends Service {
                 await this.addEvent(tdoc._id, 'runs', this.adapter.toRun(tdoc, rdoc, testCase));
             }
         }
-        /* eslint-enable no-await-in-loop */
     }
 
     async initializeContest(tdoc: Tdoc) {
