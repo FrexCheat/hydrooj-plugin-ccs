@@ -42,6 +42,13 @@
 ## How to use
 
 - 安装插件并重启 Hydro OJ
+
+```bash
+yarn global add @frexdeveloper/hydrooj-plugin-ccs
+hydrooj addon add @frexdeveloper/hydrooj-plugin-ccs
+pm2 restart hydrooj
+```
+
 - 创建好 ACM/ICPC 赛制比赛，并将时间、题目、队伍等等一系列赛前设置全部设置完善，保持在随时可以开始比赛的状态即可。
 
 > [!CAUTION]
