@@ -49,7 +49,7 @@
 >
 > 如果比赛中途重新初始化比赛，请重置 CDS Event-Feed 缓存，否则 CDS 会出现数据混乱。
 
-- 进入 “系统设置” 修改 CCS 账户的默认密码：
+- 进入 “控制面板-配置管理” 修改 CCS 账户的默认密码：
 
 ![](./images/change-default-passwd.png)
 
