@@ -51,25 +51,25 @@ export class CCSEventFeedService extends Service {
     }
 
     async addMissingStateEvent(tdoc: Tdoc) {
+        let shouldAddEvent = false;
         const stateEvents = await this.getEvents(tdoc._id, null, 'state');
         const lastStateEvent = stateEvents[stateEvents.length - 1];
         const stateData: CCState | null = lastStateEvent?.data as CCState ?? null;
-        
-        if (!stateData) {
-            await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
-            return;
-        }
 
         const isOngoing = ContestModel.isOngoing(tdoc);
         const isDone = ContestModel.isDone(tdoc);
         const isLocked = ContestModel.isLocked(tdoc);
-
-        const shouldAddEvent = (
-            (isOngoing && !stateData.started) ||
-            (isOngoing && isLocked && !stateData.frozen) ||
-            (isDone && !stateData.ended) ||
-            (isDone && !isLocked && !stateData.thawed)
-        );
+        
+        if (!stateData) {
+            shouldAddEvent = true;
+        } else {
+            shouldAddEvent = (
+                (isOngoing && !stateData.started) ||
+                (isOngoing && isLocked && !stateData.frozen) ||
+                (isDone && !stateData.ended) ||
+                (isDone && !isLocked && !stateData.thawed)
+            );
+        }
 
         if (shouldAddEvent) {
             await this.addEvent(tdoc._id, 'state', this.adapter.toState(tdoc));
@@ -130,14 +130,18 @@ export class CCSEventFeedService extends Service {
             const orgId = crypto.createHash('md5').update(udoc.school || udoc.uname).digest('hex');
             orgMap[orgId] ||= this.adapter.toOrganization(orgId, udoc);
         }
-        await Promise.all(Object.values(orgMap).map((org) => this.addEvent(tdoc._id, 'organizations', org)));
+        for (const org of Object.values(orgMap)) {
+            await this.addEvent(tdoc._id, 'organizations', org);
+        }
 
         // teams
         const teams = tudocs.map((i) => {
             const udoc = udict[i.uid];
             return this.adapter.toTeam(udoc, i.unrank);
         });
-        await Promise.all(teams.map((team) => this.addEvent(tdoc._id, 'teams', team)));
+        for (const team of teams) {
+            await this.addEvent(tdoc._id, 'teams', team);
+        }
 
         // judgement-types
         await Promise.all(Object.keys(STATUS_SHORT_TEXTS).map((i) => this.addEvent(tdoc._id, 'judgement-types', {
